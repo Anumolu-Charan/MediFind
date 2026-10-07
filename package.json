@@ -2,6 +2,7 @@
   "name": "medifind-monorepo",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "MediFind – Medicine Availability Finder Fullstack Application",
   "scripts": {
     "dev:server": "npm --prefix server run dev",
@@ -9,7 +10,19 @@
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
     "seed": "npm --prefix server run seed",
     "build:client": "npm --prefix client run build",
+    "build": "npm --prefix client install && npm --prefix client run build",
     "start": "npm --prefix server start"
+  },
+  "dependencies": {
+    "@google/genai": "latest",
+    "@supabase/supabase-js": "^2.49.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

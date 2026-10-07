@@ -21,7 +21,12 @@ const clientDistPath = path.resolve(__dirname, '../../client/dist');
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,7 +35,7 @@ if (ENV.NODE_ENV === 'development') {
 }
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
     service: 'MediFind API',
@@ -42,18 +47,33 @@ app.get('/api/health', (req, res) => {
       supabase: Boolean(ENV.SUPABASE_URL),
     },
   });
-});
+};
 
-// Mount Routes
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
+app.get('/api', (req, res) => res.json({ status: 'ok', service: 'MediFind API' }));
+
+// Mount Routes (supporting both /api/* and root/* for flexible Vercel rewrites)
 app.use('/api/auth', authRouter);
-app.use('/api/medicines', medicinesRouter);
-app.use('/api/pharmacies', pharmaciesRouter);
-app.use('/api/inventory', inventoryRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/admin', adminRouter);
+app.use('/auth', authRouter);
 
-// Serve static frontend assets if built
-if (fs.existsSync(clientDistPath)) {
+app.use('/api/medicines', medicinesRouter);
+app.use('/medicines', medicinesRouter);
+
+app.use('/api/pharmacies', pharmaciesRouter);
+app.use('/pharmacies', pharmaciesRouter);
+
+app.use('/api/inventory', inventoryRouter);
+app.use('/inventory', inventoryRouter);
+
+app.use('/api/ai', aiRouter);
+app.use('/ai', aiRouter);
+
+app.use('/api/admin', adminRouter);
+app.use('/admin', adminRouter);
+
+// Serve static frontend assets if built and running locally (not on Vercel)
+if (!process.env.VERCEL && fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
@@ -67,11 +87,13 @@ if (fs.existsSync(clientDistPath)) {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Start Server
-const server = app.listen(ENV.PORT, async () => {
-  console.log(`🚀 MediFind Server listening on port ${ENV.PORT} [${ENV.NODE_ENV}]`);
-  console.log(`📡 API Endpoints base: http://localhost:${ENV.PORT}/api`);
-  await testDbConnection();
-});
+// Start Server when run directly, not in Vercel serverless environment
+if (!process.env.VERCEL) {
+  const server = app.listen(ENV.PORT, async () => {
+    console.log(`🚀 MediFind Server listening on port ${ENV.PORT} [${ENV.NODE_ENV}]`);
+    console.log(`📡 API Endpoints base: http://localhost:${ENV.PORT}/api`);
+    await testDbConnection();
+  });
+}
 
 export default app;
